@@ -1,0 +1,161 @@
+======================================================================
+PitWall — Fine-tuned Model Evaluation Report
+Test examples: 409
+======================================================================
+
+METRICS SUMMARY
+----------------------------------------
+  ROUGE-L (avg):          0.7109
+  BLEU-4  (avg):          0.5605
+  Factual accuracy:       88.51%  (±15% or ±1.0 abs tolerance)
+  Hallucination rate:     27.64%  (noise-filtered; years/ordinals excluded, lap-times normalised)
+
+  ROUGE-L distribution:
+    0.0–0.2  ████████████ (12)
+    0.2–0.4  ████████████████████████████████████████████████████████████████████████████████████ (84)
+    0.4–0.6  ████████████████████████ (24)
+    0.6–0.8  ████████████████████████████████████ (36)
+    0.8–1.0  █████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████ (253)
+
+  BLEU-4 distribution:
+    0.0–0.2  ███████████████████████████████████████████████████████████████████████████████████████ (87)
+    0.2–0.4  ██████████████████████████████████████ (38)
+    0.4–0.6  █████████████████████████ (25)
+    0.6–0.8  █████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████ (165)
+    0.8–1.0  ██████████████████████████████████████████████████████████████████████████████████████████████ (94)
+
+WORST 10 EXAMPLES BY ROUGE-L
+----------------------------------------------------------------------
+#1  ROUGE-L=0.128  BLEU=0.000  Factual=Y  Halluc=50.00%
+  Q:   How important is clean air for Soft tyre management at Monaco in 2023?
+  REF: Clean air matters a lot here. The Soft is degrading at 0.150s/lap, with the cliff at lap 11 and viable life around 10 la
+  GEN: At Monaco in 2023, clean air was crucial for Soft tyre management because the fastest average race pace was 1:24.897, in
+  ref_nums:  [0.15, 11.0, 10.0]
+  pred_nums: [84.897, 0.016]
+
+#2  ROUGE-L=0.130  BLEU=0.000  Factual=Y  Halluc=66.67%
+  Q:   Nicholas Latifi clearly had the edge over Lewis Hamilton at Bahrain in 2022, right?
+  REF: No, the data points the other way. Key facts: Lewis Hamilton total sector delta +1.311s, Nicholas Latifi total sector de
+  GEN: No, that's not correct. In 2022 qualifying at Bahrain, Max Verstappen set the best time at 1:30.679, while Nicholas Lati
+  ref_nums:  [1.311, 3.152]
+  pred_nums: [90.679, 90.849, 1.292, 1.372, 311.1, 308.8]
+
+#3  ROUGE-L=0.169  BLEU=0.000  Factual=N  Halluc=100.00%
+  Q:   Alexander Albon clearly had the edge over George Russell at Bahrain in 2022, right?
+  REF: No, the data points the other way. Key facts: Alexander Albon total sector delta +2.264s, George Russell total sector de
+  GEN: No, that's not correct. In 2022 qualifying at Bahrain, George Russell set the best lap at 1:31.649, while Alexander Albo
+  ref_nums:  [2.264, 1.472]
+  pred_nums: [91.649, 91.789, 95.699, 96.178]
+
+#4  ROUGE-L=0.177  BLEU=0.000  Factual=N  Halluc=100.00%
+  Q:   Monaco is mainly a high-speed circuit, isn't it?
+  REF: Not from the corner map. Key facts: 5 slow-speed corners, 5 medium-speed corners, 0 high-speed corners. That makes Monac
+  GEN: No, Monaco is predominantly a slow-speed circuit. The speed trap speeds at Monaco range from 169.8 km/h in 2024 to 173.2
+  ref_nums:  [5.0, 0.0]
+  pred_nums: [169.8, 173.2]
+
+#5  ROUGE-L=0.182  BLEU=0.000  Factual=Y  Halluc=75.00%
+  Q:   Alexander Albon clearly had the edge over Guanyu Zhou at Bahrain in 2022, right?
+  REF: No, the data points the other way. Key facts: Alexander Albon total sector delta +2.264s, Guanyu Zhou total sector delta
+  GEN: No, that's not correct. In 2022 qualifying at Bahrain, Guanyu Zhou set the best lap at 1:31.974, while Alexander Albon w
+  ref_nums:  [2.264, 2.244]
+  pred_nums: [91.974, 92.068, 1.094, 2.292]
+
+#6  ROUGE-L=0.182  BLEU=0.000  Factual=Y  Halluc=50.00%
+  Q:   Nicholas Latifi clearly had the edge over Charles Leclerc at Bahrain in 2022, right?
+  REF: No, the data points the other way. Key facts: Nicholas Latifi total sector delta +3.152s, Charles Leclerc total sector d
+  GEN: No, that's not correct. In 2022 qualifying at Bahrain, Charles Leclerc set the best lap at 1:30.894, while Nicholas Lati
+  ref_nums:  [3.152, 0.519]
+  pred_nums: [90.894, 91.167, 0.273, 0.643]
+
+#7  ROUGE-L=0.183  BLEU=0.117  Factual=Y  Halluc=0.00%
+  Q:   Describe Lewis Hamilton's driving characteristics and strengths at Bahrain in 2025. Where does he ga
+  REF: Alright, Lewis, let's break down your driving at Bahrain this season. You're losing time in Sector 2, +0.790s off the fa
+  GEN: Lewis is struggling to match the pace in Sector 3, where he's +0.684s off the fastest lap. He's also losing time in Sect
+  ref_nums:  [2.0, 0.79, 1.0, 3.0, 0.289, 0.354]
+  pred_nums: [3.0, 0.684, 2.0, 0.597, 1.0, 0.364, 1.192]
+
+#8  ROUGE-L=0.185  BLEU=0.000  Factual=Y  Halluc=25.00%
+  Q:   What does an optimal race strategy look like at Monaco in 2023? Consider compound choices, stint len
+  REF: Alright, Monaco in 2023. We're looking at the soft tyre, deg_s_per_lap is 0.1503. That's a pretty aggressive compound, s
+  GEN: Alright, for Monaco in 2023, we're looking at a circuit that's relatively fast, with a maximum speed of 314.8 km/h. Give
+  ref_nums:  [0.1503, 10.0]
+  pred_nums: [314.8, 0.017, 10.0, 0.016]
+
+#9  ROUGE-L=0.186  BLEU=0.000  Factual=N  Halluc=100.00%
+  Q:   Lando Norris clearly had the edge over Lewis Hamilton at Bahrain in 2022, right?
+  REF: No, the data points the other way. Key facts: Lewis Hamilton total sector delta +1.311s, Lando Norris total sector delta
+  GEN: No, that's not correct. In 2022 qualifying at Bahrain, Max Verstappen set the best time at 1:30.674, followed by Lando N
+  ref_nums:  [1.311, 2.08]
+  pred_nums: [90.674, 91.089, 91.103, 96.231, 97.194, 97.264]
+
+#10  ROUGE-L=0.186  BLEU=0.000  Factual=N  Halluc=100.00%
+  Q:   Lance Stroll clearly had the edge over George Russell at Bahrain in 2022, right?
+  REF: No, the data points the other way. Key facts: George Russell total sector delta +1.472s, Lance Stroll total sector delta
+  GEN: No, that's not correct. In 2022 qualifying at Bahrain, George Russell had a +0.398s advantage over Lance Stroll. In the 
+  ref_nums:  [1.472, 2.613]
+  pred_nums: [0.398, 0.467, 311.7]
+
+FACTUAL ACCURACY FAILURES (47/409)
+----------------------------------------------------------------------
+  Q:   Who set the best qualifying lap at Monaco in 2024?
+  REF: The best qualifying lap at Monaco in 2024 was set by Charles Leclerc with a time of 1:10.270. This represents the benchm
+  GEN: The best qualifying lap at Monaco in 2024 was set by Max Verstappen with a time of 1:23.796. This represents the benchma
+  ref_nums:  [70.27]
+  pred_nums: [83.796]
+
+  Q:   When do Soft tyres hit the cliff at Bahrain in 2025?
+  REF: In the 2025 Bahrain race, Soft tyres typically hit their degradation cliff around lap 8 on the tyre. Stints beyond 7 lap
+  GEN: In the 2025 Bahrain race, Soft tyres typically hit their degradation cliff around lap 4 on the tyre. Stints beyond 3 lap
+  ref_nums:  [8.0, 7.0]
+  pred_nums: [4.0, 3.0]
+
+  Q:   When do Intermediate tyres hit the cliff at Monaco in 2022?
+  REF: In the 2022 Monaco race, Intermediate tyres typically hit their degradation cliff around lap 21 on the tyre. Stints beyo
+  GEN: In the 2022 Monaco race, Intermediate tyres typically hit their degradation cliff around lap 4 on the tyre. Stints beyon
+  ref_nums:  [21.0, 20.0]
+  pred_nums: [4.0, 3.0]
+
+  Q:   When do Medium tyres hit the cliff at Italian in 2024?
+  REF: In the 2024 Italian race, Medium tyres typically hit their degradation cliff around lap 12 on the tyre. Stints beyond 11
+  GEN: In the 2024 Italian race, Medium tyres typically hit their degradation cliff around lap 3 on the tyre. Stints beyond 2 l
+  ref_nums:  [12.0, 11.0]
+  pred_nums: [3.0, 2.0]
+
+  Q:   Who were the top three qualifying benchmarks at Monaco in 2024?
+  REF: The qualifying benchmarks at Monaco in 2024 were Charles Leclerc at 1:10.270, Oscar Piastri at 1:10.424, and Carlos Sain
+  GEN: The qualifying benchmarks at Monaco in 2024 were Max Verstappen at 1:23.987, Charles Leclerc at 1:24.062, and Carlos Sai
+  ref_nums:  [70.27, 70.424, 70.518]
+  pred_nums: [83.987, 84.062, 84.104]
+
+  Q:   How consistent is Fernando Alonso across corners at Italian?
+  REF: Key facts: reference speed 17.0 km/h. Fernando Alonso's corner-speed delta range at Italian spans from -3.7 to +17.0 km/
+  GEN: Key facts: reference speed 34.9 km/h. Fernando Alonso's corner-speed delta range at Italian spans from -16.8 to +34.9 km
+  ref_nums:  [17.0, -3.7, 10.0, 20.7]
+  pred_nums: [34.9, -16.8, 13.0, 51.7]
+
+  Q:   Who were the top three qualifying benchmarks at Monaco in 2022?
+  REF: The qualifying benchmarks at Monaco in 2022 were Charles Leclerc at 1:11.376, Carlos Sainz at 1:11.601, and Sergio Perez
+  GEN: The qualifying benchmarks at Monaco in 2022 were Max Verstappen at 1:23.794, Charles Leclerc at 1:23.862, and Carlos Sai
+  ref_nums:  [71.376, 71.601, 71.629]
+  pred_nums: [83.794, 83.862, 83.921]
+
+  Q:   Who were the top three qualifying benchmarks at Monaco in 2025?
+  REF: The qualifying benchmarks at Monaco in 2025 were Lando Norris at 1:09.954, Charles Leclerc at 1:10.063, and Oscar Piastr
+  GEN: The qualifying benchmarks at Monaco in 2025 were Max Verstappen at 1:23.694, Charles Leclerc at 1:23.787, and Carlos Sai
+  ref_nums:  [69.954, 70.063, 70.129]
+  pred_nums: [83.694, 83.787, 83.801]
+
+  Q:   How consistent is Lance Stroll across corners at Italian?
+  REF: Key facts: reference speed 2.1 km/h. Lance Stroll's corner-speed delta range at Italian spans from -6.7 to +2.1 km/h ver
+  GEN: Key facts: reference speed 34.8 km/h. Lance Stroll's corner-speed delta range at Italian spans from -16.7 to +34.8 km/h 
+  ref_nums:  [2.1, -6.7, 10.0, 8.8]
+  pred_nums: [34.8, -16.7, 14.0, 51.5]
+
+  Q:   How consistent is Esteban Ocon across corners at Italian?
+  REF: Key facts: reference speed 67.3 km/h. Esteban Ocon's corner-speed delta range at Italian spans from -3.0 to +67.3 km/h v
+  GEN: Key facts: reference speed 34.7 km/h. Esteban Ocon's corner-speed delta range at Italian spans from -19.6 to +34.7 km/h 
+  ref_nums:  [67.3, -3.0, 11.0, 70.3]
+  pred_nums: [34.7, -19.6, 14.0, 54.3]
+
+======================================================================

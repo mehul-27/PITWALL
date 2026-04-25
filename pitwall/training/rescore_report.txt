@@ -1,0 +1,158 @@
+======================================================================
+PitWall -- Hallucination Metric Re-score Report
+Examples: 178
+======================================================================
+
+METRIC COMPARISON
+--------------------------------------------------
+  Old hallucination rate:   50.76%  (old metric, 10% tol, no noise filter)
+  New hallucination rate:   21.68%  (+/-15% rel / +/-1.0 abs, noise-filtered)
+  Delta improvement:        +29.07%
+
+  Old factual accuracy:     94.38%
+  New factual accuracy:     96.63%
+
+  OLD halluc distribution:
+    0.0-0.2  ################# (17)
+    0.2-0.4  ################################################ (48)
+    0.4-0.6  ########################################### (43)
+    0.6-0.8  ############################################### (47)
+    0.8-1.0  ####################### (23)
+
+  NEW halluc distribution:
+    0.0-0.2  ################################################################################################ (96)
+    0.2-0.4  #################################### (36)
+    0.4-0.6  ########################### (27)
+    0.6-0.8  ############# (13)
+    0.8-1.0  ###### (6)
+
+TOP 15 BIGGEST IMPROVEMENTS
+----------------------------------------------------------------------
+#1  old=100.00% -> new=0.00%  (delta=+100.00%)
+  Q: How do Valtteri Bottas and SAR compare at Monaco in 2024? Who has the edge in ea
+  ref_nums:  [2.0, 1.241, 1.0, 0.939, 3.0, 0.768, 282.9, 283.1]
+  pred_nums: [0.341, 0.345]
+
+#2  old=100.00% -> new=0.00%  (delta=+100.00%)
+  Q: How do Fernando Alonso and Kevin Magnussen compare at Italian in 2022? Who has t
+  ref_nums:  [0.442, 0.72, 0.64, 328.8, 320.2]
+  pred_nums: [0.224, 0.221, 0.226]
+
+#3  old=100.00% -> new=0.00%  (delta=+100.00%)
+  Q: How do BEA and Max Verstappen compare at Bahrain in 2025? Who has the edge in ea
+  ref_nums:  [2.0, 3.0, 1.369, 0.573, 1.0, 0.373, 317.7, 315.8]
+  pred_nums: [0.141, 0.144, 0.159, 0.2]
+
+#4  old=100.00% -> new=0.00%  (delta=+100.00%)
+  Q: How do Alexander Albon and Oscar Piastri compare at Monaco in 2024? Who has the 
+  ref_nums:  [2.0, 0.885, 1.0, 3.0, 0.32, 0.398, 280.4, 279.8]
+  pred_nums: [0.144, 0.148, 0.143, 312.6, 308.8]
+
+#5  old=100.00% -> new=0.00%  (delta=+100.00%)
+  Q: How do Pierre Gasly and Esteban Ocon compare at Monaco in 2022? Who has the edge
+  ref_nums:  [1.0, 0.531, 2.0, 0.391, 3.0, 0.028, 276.6, 274.0]
+  pred_nums: [0.129, 0.145, 0.164, 312.5, 310.9]
+
+#6  old=100.00% -> new=0.00%  (delta=+100.00%)
+  Q: How do Lewis Hamilton and Lance Stroll compare at Monaco in 2023? Who has the ed
+  ref_nums:  [0.428, 0.59, 0.493, 281.0, 276.4]
+  pred_nums: [0.083, 0.164, 0.236, 313.4, 312.2]
+
+#7  old=85.71% -> new=0.00%  (delta=+85.71%)
+  Q: How do Lance Stroll and Yuki Tsunoda compare at Monaco in 2023? Who has the edge
+  ref_nums:  [0.116, 0.237, 0.036, 281.0, 273.3]
+  pred_nums: [0.144, 0.236, 313.3, 313.2]
+
+#8  old=80.00% -> new=0.00%  (delta=+80.00%)
+  Q: What is the typical minimum speed through medium-speed corners at Bahrain?
+  ref_nums:  [135.1, 7.0, 100.0, 180.0]
+  pred_nums: [151.3, 100.1, 150.0]
+
+#9  old=77.78% -> new=0.00%  (delta=+77.78%)
+  Q: Describe Pierre Gasly's driving characteristics and strengths at Monaco in 2023.
+  ref_nums:  [3.0, 0.686, 2.0, 0.605, 278.8, 6.377]
+  pred_nums: [1.0, 0.354, 2.0, 0.241, 3.0, 0.444, 308.4]
+
+#10  old=75.00% -> new=0.00%  (delta=+75.00%)
+  Q: What is the strategic picture for Hard tyres at Monaco in 2023?
+  ref_nums:  [0.044, 2.0, 282.4]
+  pred_nums: [-0.011, 3.0, 312.9]
+
+#11  old=75.00% -> new=0.00%  (delta=+75.00%)
+  Q: How does Alexander Albon perform in slow-speed corners at Bahrain?
+  ref_nums:  [3.0, 77.5, 0.4, 100.0]
+  pred_nums: [4.0, 89.3, 0.1, 100.0]
+
+#12  old=75.00% -> new=0.00%  (delta=+75.00%)
+  Q: Describe Lewis Hamilton's driving characteristics and strengths at Monaco in 202
+  ref_nums:  [70.382, 280.8, 2.0, 0.654, 1.0, 3.0, 0.49, 0.528]
+  pred_nums: [0.242, 1.0, 0.433, 3.0, 0.422, 312.1]
+
+#13  old=75.00% -> new=0.00%  (delta=+75.00%)
+  Q: What does an optimal race strategy look like at Monaco in 2024? Consider compoun
+  ref_nums:  [0.013, 3.0, 78.403]
+  pred_nums: [0.0253, 4.0]
+
+#14  old=75.00% -> new=0.00%  (delta=+75.00%)
+  Q: How do Liam Lawson and George Russell compare at Bahrain in 2025? Who has the ed
+  ref_nums:  [0.618, 0.61, 0.316, 317.9, 303.8]
+  pred_nums: [0.144, 0.234, 0.243, 314.3, 313.6]
+
+#15  old=71.43% -> new=0.00%  (delta=+71.43%)
+  Q: Describe Logan Sargeant's driving characteristics and strengths at Italian in 20
+  ref_nums:  [2.0, 0.861, 3.0, 0.72, 335.9, 5.323]
+  pred_nums: [2.0, 0.224, 1.0, 0.156, 312.3]
+
+TOP 10 STILL-HIGHEST HALLUCINATION EXAMPLES
+----------------------------------------------------------------------
+#1  new=100.00%  (was 50.00%)
+  Q: Who had the best straight-line speed at Monaco in 2022?
+  ref_nums:  [279.3]
+  pred_nums: [321.9]
+
+#2  new=100.00%  (was 66.67%)
+  Q: When do Intermediate tyres hit the cliff at Monaco in 2023?
+  ref_nums:  [3.0, 2.0]
+  pred_nums: [10.0, 11.0]
+
+#3  new=100.00%  (was 66.67%)
+  Q: When do Hard tyres hit the cliff at Monaco in 2025?
+  ref_nums:  [3.0, 2.0]
+  pred_nums: [9.0, 10.0]
+
+#4  new=100.00%  (was 66.67%)
+  Q: When do Intermediate tyres hit the cliff at Monaco in 2022?
+  ref_nums:  [21.0, 20.0]
+  pred_nums: [14.0, 3.0]
+
+#5  new=100.00%  (was 66.67%)
+  Q: When do Medium tyres hit the cliff at Italian in 2024?
+  ref_nums:  [12.0, 11.0]
+  pred_nums: [7.0, 3.0]
+
+#6  new=100.00%  (was 87.50%)
+  Q: What does an optimal race strategy look like at Bahrain in 2024? Consider compou
+  ref_nums:  [23.0]
+  pred_nums: [0.0245, 4.0, -0.0081, 10.0]
+
+#7  new=72.73%  (was 84.62%)
+  Q: What kind of corners make Monaco challenging?
+  ref_nums:  [10.0, 5.0, 100.0, 180.0, 0.0]
+  pred_nums: [18.0, 1.0, 12.0, 4.0, 2.0, 3.0, 5.0, 10.0]...
+
+#8  new=66.67%  (was 75.00%)
+  Q: How do Medium tyres degrade at Bahrain in 2023?
+  ref_nums:  [0.235, 8.0, 9.0]
+  pred_nums: [0.014, 5.0, 6.0]
+
+#9  new=66.67%  (was 75.00%)
+  Q: How do Hard tyres degrade at Monaco in 2025?
+  ref_nums:  [0.015, 2.0, 3.0]
+  pred_nums: [0.007, 5.0, 6.0]
+
+#10  new=66.67%  (was 75.00%)
+  Q: How do Hard tyres degrade at Bahrain in 2025?
+  ref_nums:  [0.017, 3.0, 4.0]
+  pred_nums: [0.007, 8.0, 9.0]
+
+======================================================================

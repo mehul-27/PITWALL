@@ -1,0 +1,8 @@
+transformers>=4.51.0
+trl
+peft
+accelerate
+torch
+datasets
+huggingface_hub
+# unsloth is pre-installed on Kaggle T4 — do not pin it here

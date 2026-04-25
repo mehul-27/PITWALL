@@ -1,0 +1,60 @@
+# Secrets
+.env
+**/.env
+
+# Excluded from version control (per project preference)
+*.md
+*.ipynb
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.eggs/
+.venv/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# PyCharm / VS Code
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Pytest / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Local caches (regenerate; can be very large)
+**/data/cache/
+.chroma/
+chromadb_data/
+
+# Local SQLite (often > GitHub 100MB limit; rebuild via pipeline)
+**/pitwall.db
+pitwall/data/pitwall.db

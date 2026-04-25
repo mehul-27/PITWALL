@@ -1,0 +1,11 @@
+{
+  "m2_done": {
+    "tyre_behaviour": 160,
+    "undercut_strategy": 156,
+    "driver_characteristics": 160,
+    "circuit_strategy": 45,
+    "driver_comparison": 160
+  },
+  "m3_done": 294,
+  "total_discarded": 492
+}

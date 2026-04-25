@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PitWall · AI Race Engineer</title>
+<meta name="description" content="AI-powered F1 race engineer chatbot for strategy, telemetry, and driving mechanics. Data covers 2020-2025 seasons.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,700;0,800;1,400;1,700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<!-- ── TICKER BAR ──────────────────────────────────────── -->
+<div class="ticker-wrap">
+  <div class="ticker-track" id="tkTrack"></div>
+</div>
+
+<!-- ── HERO ────────────────────────────────────────────── -->
+<section class="hero">
+  <span class="speed-line"></span>
+  <span class="speed-line"></span>
+  <span class="speed-line"></span>
+
+  <div class="hero-top">
+    <div class="brand-eyebrow">
+      <span class="checker-flag"></span>
+      <span>PitWall &middot; Race Engineer Edition</span>
+    </div>
+  </div>
+
+  <div class="title-wrap">
+    <h1 class="hero-title">
+      <span class="line1"><span>Your</span></span>
+      <span class="line2"><span>Race Engineer.</span></span>
+    </h1>
+    <div class="title-underline"></div>
+  </div>
+
+  <div class="hero-sub">
+    <span>Strategy &middot; Telemetry &middot; Tyre Analysis &middot; Driver Mechanics</span>
+    <span class="live-badge">ONLINE</span>
+  </div>
+</section>
+
+<!-- ── MAIN CHAT ───────────────────────────────────────── -->
+<section class="main-section">
+  <div class="chat-grid">
+
+    <!-- LEFT — Chat Thread -->
+    <div class="chat-panel">
+      <div class="col-head">
+        <div class="col-num">&sect; 01</div>
+        <div class="col-name">Conver<em>sation</em></div>
+        <div class="col-sub">Ask me anything about F1 strategy &amp; pace</div>
+      </div>
+
+      <div class="chat-messages" id="chatMessages">
+        <!-- Empty state -->
+        <div class="empty-state" id="emptyState">
+          <div class="checker-flag"></div>
+          <div class="empty-title">Ready at the pit wall.</div>
+          <div class="empty-sub">Ask about strategy, tyres, sector times, or driver mechanics.</div>
+        </div>
+      </div>
+
+      <div class="input-bar">
+        <textarea id="chatInput" rows="1" placeholder="Ask your race engineer..."></textarea>
+        <button class="send-btn" id="sendBtn">SEND &rarr;</button>
+      </div>
+    </div>
+
+    <!-- RIGHT — Context Sidebar -->
+    <div class="sidebar">
+      <div class="col-head">
+        <div class="col-num">&sect; 02</div>
+        <div class="col-name">Session <em>Context</em></div>
+        <div class="col-sub">Active Knowledge Base</div>
+      </div>
+
+      <!-- Quick Prompts -->
+      <div class="prompts-section">
+        <div class="prompts-label">Quick Prompts</div>
+        <div class="prompt-card">How did Verstappen attack Eau Rouge in 2023 qualifying?</div>
+        <div class="prompt-card">Compare Leclerc vs Sainz tyre deg at Barcelona, last 3 seasons</div>
+        <div class="prompt-card">What's the optimal strategy for a 57-lap Miami race on C3-C4?</div>
+        <div class="prompt-card">Which driver has the best wet weather sector 1 at Spa?</div>
+        <div class="prompt-card">Explain McLaren's undercut timing in Japan 2024</div>
+        <div class="prompt-card">Antonelli vs Russell straight-line speed comparison</div>
+      </div>
+
+      <!-- Data Scope -->
+      <div class="scope-section">
+        <div class="prompts-label">Data Scope</div>
+        <div class="scope-grid">
+          <div class="scope-cell">
+            <div class="scope-label">Seasons</div>
+            <div class="scope-val">2020<em>&ndash;</em>25</div>
+          </div>
+          <div class="scope-cell">
+            <div class="scope-label">Circuits</div>
+            <div class="scope-val">23</div>
+          </div>
+          <div class="scope-cell">
+            <div class="scope-label">Sessions</div>
+            <div class="scope-val">Q <em>&middot;</em> FP2 <em>&middot;</em> R</div>
+          </div>
+          <div class="scope-cell">
+            <div class="scope-label">Drivers</div>
+            <div class="scope-val">All Grid</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Last Query Meta -->
+      <div class="meta-section">
+        <div class="prompts-label">Last Query</div>
+
+        <div class="meta-row">
+          <span class="meta-label">Mode</span>
+          <span class="meta-badge general" id="metaMode">GENERAL</span>
+        </div>
+
+        <div class="meta-row">
+          <span class="meta-label">Response Time</span>
+          <span class="meta-val gold" id="metaTime">&mdash;</span>
+        </div>
+
+        <div class="meta-row">
+          <span class="meta-label">Confidence</span>
+          <div style="flex:1;margin-left:16px">
+            <div class="confidence-track">
+              <div class="confidence-fill" id="metaConfBar" style="width:0"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="meta-row">
+          <span class="meta-label">Topics</span>
+          <div class="meta-chips" id="metaTopics"></div>
+        </div>
+
+        <div class="meta-row" style="display:none">
+          <span class="meta-label">Query Time</span>
+          <span class="meta-val gold" id="metaQueryTime">&mdash;</span>
+        </div>
+
+        <div class="meta-row" style="display:none">
+          <span class="meta-label">Data Points</span>
+          <span class="meta-val" id="metaDataPoints">&mdash;</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ── FOOTER ──────────────────────────────────────────── -->
+<div class="footer-wrap">
+  <footer class="footer">
+    <div class="f-note">PitWall AI<span class="f-dot"></span>Lights out and away we go</div>
+    <div class="f-brand">The <em>Pit Wall</em></div>
+  </footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.0/marked.min.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js" crossorigin="anonymous"></script>
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
