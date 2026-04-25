@@ -4,6 +4,7 @@
 
 # Excluded from version control (per project preference)
 *.md
+!setup.md
 *.ipynb
 
 # Python

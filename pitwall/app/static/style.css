@@ -83,8 +83,9 @@ body{
 }
 .brand-eyebrow{
   display:inline-flex;align-items:center;gap:18px;
-  font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;
-  letter-spacing:.24em;text-transform:uppercase;color:var(--ink);
+  font-family:'JetBrains Mono',monospace;
+  font-size:clamp(15px,2.1vw,24px);font-weight:700;
+  letter-spacing:.18em;text-transform:uppercase;color:var(--ink);
   animation:checkerFadeIn .9s cubic-bezier(.2,.8,.2,1) both .5s;
 }
 .checker-flag{
@@ -102,11 +103,11 @@ body{
   line-height:.95;letter-spacing:-.03em;color:var(--ink);
 }
 .hero-title .line1{
-  display:block;font-size:clamp(56px,9vw,126px);line-height:1.1;overflow:hidden;padding-bottom:.05em;
+  display:block;font-size:clamp(36px,6.2vw,88px);line-height:1.1;overflow:hidden;padding-bottom:.05em;
 }
 .hero-title .line1 span{display:inline-block;animation:maskRevealUp 1.1s cubic-bezier(.2,.9,.25,1) both .9s}
 .hero-title .line2{
-  display:block;font-size:clamp(56px,9vw,126px);font-style:italic;
+  display:block;font-size:clamp(36px,6.2vw,88px);font-style:italic;
   color:var(--racing);line-height:1.1;overflow:hidden;margin-top:-.05em;padding-bottom:.05em;
 }
 .hero-title .line2 span{display:inline-block;animation:maskRevealUp 1.1s cubic-bezier(.2,.9,.25,1) both 1.4s}
@@ -430,14 +431,14 @@ body{
   .hero,.main-section,.footer-wrap{padding-left:20px;padding-right:20px}
   .hero{padding-top:68px}
   .hero-top{flex-direction:column;gap:18px;align-items:flex-start}
-  .hero-title .line1,.hero-title .line2{font-size:clamp(46px,14vw,84px)}
+  .hero-title .line1,.hero-title .line2{font-size:clamp(32px,10vw,64px)}
   .chat-grid{grid-template-columns:1fr}
   .chat-panel{border-right:none;border-bottom:1px solid var(--rule-light)}
   .hero-sub{flex-direction:column;align-items:flex-start;gap:14px}
   .col-head{position:relative;top:auto}
 }
 @media(max-width:540px){
-  .hero-title .line1,.hero-title .line2{font-size:clamp(36px,12vw,56px)}
+  .hero-title .line1,.hero-title .line2{font-size:clamp(28px,11vw,48px)}
   .scope-grid{grid-template-columns:1fr}
   .input-bar{flex-direction:column}
   .send-btn{width:100%}

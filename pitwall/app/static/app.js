@@ -21,7 +21,7 @@
   (function initTicker() {
     const items = [
       { sym: 'PITWALL AI', val: 'RACE ENGINEER', pts: '' },
-      { sym: 'SEASONS', val: '2020-2025', pts: '' },
+      { sym: 'SEASONS', val: '2022-25', pts: '' },
       { sym: 'DATA', val: 'QUALIFYING', pts: 'FP2 \u00b7 RACE' },
       { sym: 'DRIVERS', val: 'ALL GRID', pts: '' },
       { sym: 'TYRES', val: 'STRATEGY', pts: 'PACE' },
