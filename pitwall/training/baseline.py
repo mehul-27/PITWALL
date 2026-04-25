@@ -24,7 +24,7 @@ except ModuleNotFoundError:
     pass
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from config import BASE_MODEL_ID, MAX_NEW_TOKENS, SYSTEM_PROMPT, TEMPERATURE, TEST_PATH
+from config import BASE_MODEL_ID, INFERENCE_TEMPERATURE, MAX_NEW_TOKENS, SYSTEM_PROMPT, TEST_PATH
 
 log = logging.getLogger(__name__)
 
@@ -90,8 +90,8 @@ def generate(model, tokenizer, messages: list[dict]) -> str:
         out = model.generate(
             **inputs,
             max_new_tokens=MAX_NEW_TOKENS,
-            temperature=TEMPERATURE,
-            do_sample=TEMPERATURE > 0,
+            temperature=INFERENCE_TEMPERATURE,
+            do_sample=INFERENCE_TEMPERATURE > 0,
             pad_token_id=tokenizer.eos_token_id,
         )
     return tokenizer.decode(out[0][prompt_len:], skip_special_tokens=True).strip()

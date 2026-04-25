@@ -210,7 +210,8 @@ def e07_sector_attack_plan(conn) -> list[tuple[str, str]]:
         q = f"What sector should {name} focus on at {r['circuit']} in {r['season']}?"
         a = (
             f"Focus on Sector {worst[0]}. {name}'s deltas are S1 {_fmt_s(r['avg_sector1_delta'])}, "
-            f"S2 {_fmt_s(r['avg_sector2_delta'])}, and S3 {_fmt_s(r['avg_sector3_delta'])}; "
+            f"S2 {_fmt_s(r['avg_sector2_delta'])}, and S3 {_fmt_s(r['avg_sector3_delta'])} "
+            f"(vs session fastest Q lap: +s = slower, −s = faster); "
             f"Sector {worst[0]} is the biggest loss at {_fmt_s(worst[1])}. The setup and driving work "
             f"should target the corner sequence in that sector first."
         )

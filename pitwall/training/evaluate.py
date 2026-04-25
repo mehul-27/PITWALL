@@ -29,13 +29,13 @@ except ModuleNotFoundError:
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from config import (
     BASE_MODEL_ID,
+    INFERENCE_TEMPERATURE,
     MAX_NEW_TOKENS,
     QWEN_ADAPTER_PATH,
     QWEN_BASE_MODEL_PATH,
     QWEN_LOAD_IN_4BIT,
     QWEN_LOCAL_DTYPE,
     SYSTEM_PROMPT,
-    TEMPERATURE,
     TEST_PATH,
 )
 
@@ -177,7 +177,7 @@ def load_model():
 
 def generate(model, tokenizer, messages: list[dict]) -> str:
     import torch
-    do_sample = TEMPERATURE > 0
+    do_sample = INFERENCE_TEMPERATURE > 0
     prompt = tokenizer.apply_chat_template(
         messages, tokenize=False, add_generation_prompt=True
     )
@@ -195,7 +195,7 @@ def generate(model, tokenizer, messages: list[dict]) -> str:
             input_ids=input_ids,
             attention_mask=attention_mask,
             max_new_tokens=MAX_NEW_TOKENS,
-            temperature=TEMPERATURE if do_sample else None,
+            temperature=INFERENCE_TEMPERATURE if do_sample else None,
             do_sample=do_sample,
             pad_token_id=tokenizer.pad_token_id,
             eos_token_id=tokenizer.eos_token_id,

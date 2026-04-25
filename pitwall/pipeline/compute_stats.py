@@ -451,7 +451,10 @@ def compute_driver_sector_stats(conn) -> None:
     # Per-sector deltas keyed by (driver, circuit, season).
     # Each value is a list of (s1_delta|None, s2_delta|None, s3_delta|None)
     # tuples — one entry per session the driver appeared in.
-    _MAX_SECTOR_DELTA = 2.0   # deltas beyond this are sensor/traffic noise
+    # Convention: delta = driver_sector_time − session_reference_sector_time (seconds).
+    # Reference = the session’s fastest *full* lap (min lap_time across valid laps).
+    # Positive = slower than that reference; negative = faster in that sector
+    # (possible even if the driver’s overall lap was slower).
 
     agg: dict[tuple[str, str, int], list[tuple]] = defaultdict(list)
     for sess in sessions:
@@ -472,7 +475,7 @@ def compute_driver_sector_stats(conn) -> None:
         if not sector_rows:
             continue
 
-        # Baseline = fastest driver IN THIS SESSION by overall lap time.
+        # Baseline = fastest *lap* in this session (min lap_time; ties → fastest sectors).
         baseline_row = min(sector_rows, key=lambda r: float(r["lap_time"]))
         b1 = float(baseline_row["sector1"])
         b2 = float(baseline_row["sector2"])
@@ -484,13 +487,10 @@ def compute_driver_sector_stats(conn) -> None:
             d1 = float(r["sector1"]) - b1
             d2 = float(r["sector2"]) - b2
             d3 = float(r["sector3"]) - b3
-            # Mark individual sectors as None if outside valid range.
-            # Negative deltas would mean a driver beat the fastest lap in one
-            # sector — impossible by construction (baseline IS fastest), but
-            # guard anyway for floating-point edge cases.
-            s1 = d1 if 0.0 <= d1 <= _MAX_SECTOR_DELTA else None
-            s2 = d2 if 0.0 <= d2 <= _MAX_SECTOR_DELTA else None
-            s3 = d3 if 0.0 <= d3 <= _MAX_SECTOR_DELTA else None
+            lo, hi = SECTOR_DELTA_BOUNDS
+            s1 = d1 if lo <= d1 <= hi else None
+            s2 = d2 if lo <= d2 <= hi else None
+            s3 = d3 if lo <= d3 <= hi else None
             key = (str(r["driver"]), circuit, season)
             agg[key].append((s1, s2, s3))
 
@@ -953,6 +953,7 @@ def compute_corner_stats(conn) -> None:
                 continue
 
             field_avg = mean(field_by_corner[corner_number])
+            # Speed margin (km/h), not lap-time delta: + = higher min speed vs field mean.
             delta_vs_field = avg_min_speed - field_avg
             conn.execute(
                 """
@@ -1222,6 +1223,7 @@ def compute_quali_race_delta(conn) -> None:
 
         # Median race pace across laps 5..(total_laps - 3)
         avg_race = float(np.median(lap_times))
+        # Reference: best one-lap quali. Positive = race median slower than that quali time.
         delta    = avg_race - best_quali
 
         # Store None for delta if outside realistic range — data is present

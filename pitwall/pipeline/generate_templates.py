@@ -242,7 +242,8 @@ def t06_driver_sector_strengths(conn) -> list[tuple[str, str]]:
             f"{_fmt_s(r['avg_sector1_delta'])} in S1, "
             f"{_fmt_s(r['avg_sector2_delta'])} in S2, and "
             f"{_fmt_s(r['avg_sector3_delta'])} in S3 "
-            f"relative to the fastest driver in qualifying. "
+            f"relative to the session fastest qualifying lap (reference: overall min lap time; "
+            f"+seconds = slower in that sector, − = faster). "
             f"{name}'s strongest sector was {best} "
             f"({_fmt_s(deltas[best])}) and weakest was {worst} "
             f"({_fmt_s(deltas[worst])})."
@@ -251,7 +252,7 @@ def t06_driver_sector_strengths(conn) -> list[tuple[str, str]]:
     return out
 
 
-# T07 ── driver sector vs field ────────────────────────────────────────────────
+# T07 ── driver sector vs session reference (Q fastest lap) ─────────────────────
 def t07_driver_sector_vs_field(conn) -> list[tuple[str, str]]:
     rows = conn.execute(
         """
@@ -370,8 +371,9 @@ def t10_corner_min_speed(conn) -> list[tuple[str, str]]:
             f"At {r['circuit']}, {name} carries an average minimum speed of "
             f"{r['avg_min_speed']:.1f} km/h through Turn {r['corner_number']} "
             f"(classified as a {ctype}-speed corner). "
-            f"This is {abs(r['delta_vs_field']):.1f} km/h "
-            f"{direction} the field average."
+            f"Field reference: mean min speed across all drivers; "
+            f"delta_vs_field is in km/h (not lap time): {abs(r['delta_vs_field']):.1f} km/h "
+            f"{direction} that mean (positive = higher min speed vs field, not 'slower lap time')."
         )
         out.append((q, a))
     return out
@@ -402,8 +404,9 @@ def t11_high_speed_corners(conn) -> list[tuple[str, str]]:
         a = (
             f"Across {r['n_corners']} high-speed corners at {r['circuit']}, "
             f"{name} averaged {r['avg_hs_speed']:.1f} km/h minimum speed, "
-            f"which is {abs(r['avg_delta']):.1f} km/h {direction} the field average. "
-            f"{'A positive delta indicates strong high-speed commitment and confidence through fast sweepers.' if r['avg_delta'] >= 0 else 'A negative delta suggests a cautious approach or setup compromise through fast sweepers.'}"
+            f"which is {abs(r['avg_delta']):.1f} km/h {direction} the field average "
+            f"(field reference: mean min speed; delta in km/h, not seconds—positive = higher min speed). "
+            f"{'A positive delta here indicates strong high-speed commitment and confidence through fast sweepers.' if r['avg_delta'] >= 0 else 'A negative delta here suggests a cautious approach or setup compromise through fast sweepers.'}"
         )
         out.append((q, a))
     return out
@@ -434,7 +437,8 @@ def t12_slow_speed_corners(conn) -> list[tuple[str, str]]:
         a = (
             f"Through {r['n_corners']} slow-speed corners at {r['circuit']}, "
             f"{name} averaged {r['avg_ss_speed']:.1f} km/h minimum speed "
-            f"({abs(r['avg_delta']):.1f} km/h {direction} field average). "
+            f"({abs(r['avg_delta']):.1f} km/h {direction} field average; "
+            f"field reference = mean min speed; delta in km/h, not lap-time seconds). "
             f"Slow corners below 100 km/h are driven mostly on traction and "
             f"mechanical grip, so this reflects {name}'s car setup balance and "
             f"throttle application on exit."

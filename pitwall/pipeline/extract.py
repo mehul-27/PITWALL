@@ -347,6 +347,50 @@ def process_event(season: int, event) -> None:
             log.error("      ERROR %s %s %s: %s", season, circuit, stype, exc, exc_info=True)
 
 
+def ingest_one_session_by_names(
+    season: int,
+    circuit: str,
+    session_type: str,
+) -> bool:
+    """
+    If this session is not already in the DB, load it from FastF1 and insert laps.
+    circuit must match stored names, e.g. 'British' (from _circuit_name_from_event).
+    session_type: 'Q' or 'Race' (SESSION_TYPES only).
+
+    Returns True if a row exists in sessions after the call, False on failure or
+    if the event cannot be found in the schedule.
+    """
+    with managed_connection() as conn:
+        if session_exists(conn, season, circuit, session_type) is not None:
+            return True
+
+    CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    fastf1.Cache.enable_cache(str(CACHE_DIR))
+    try:
+        schedule = fastf1.get_event_schedule(season, include_testing=False)
+    except Exception as exc:
+        log.warning("ingest: get_event_schedule failed season=%d: %s", season, exc)
+        return False
+
+    race_events = schedule[schedule["RoundNumber"] > 0]
+    for _, event in race_events.iterrows():
+        cname = _circuit_name_from_event(str(event["EventName"]))
+        if cname != circuit:
+            continue
+        try:
+            process_session(season, circuit, event, session_type)
+        except Exception as exc:
+            log.warning(
+                "ingest: process_session failed %s %s %s: %s",
+                season, circuit, session_type, exc,
+            )
+            return False
+        with managed_connection() as conn:
+            return session_exists(conn, season, circuit, session_type) is not None
+    log.warning("ingest: no schedule row for circuit=%r season=%d", circuit, season)
+    return False
+
+
 # -- entry point ---------------------------------------------------------------
 
 def main() -> None:

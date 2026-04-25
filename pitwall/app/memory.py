@@ -6,6 +6,7 @@ full conversation history is included in each inference call.
 
 from __future__ import annotations
 
+import re
 import time
 import uuid
 from collections import defaultdict
@@ -47,11 +48,30 @@ def get_history(session_id: str) -> list[dict]:
     return list(_store.get(session_id, []))
 
 
-def get_model_messages(session_id: str, system_prompt: str) -> list[dict]:
+# When user challenges prior answer, strip numbers the model may have hallucinated
+_NUM_CLAIM = re.compile(
+    r"(\d+:\d{2}\.\d+)|(\d+\.?\d*)\s*(s|sec|/lap|s/lap|s\s*per|km/h|kph|kmh|%)|(\b\d{1,2}\.?\d*)\s*laps?\b",
+    re.IGNORECASE,
+)
+
+
+def _redact_numerical_assistant_bodies(text: str) -> str:
+    return _NUM_CLAIM.sub("[prior numeric claim redacted: verify with fresh data]", text)
+
+
+def get_model_messages(
+    session_id: str,
+    system_prompt: str,
+    *,
+    redact_assistant_numerical_claims: bool = False,
+) -> list[dict]:
     """Build the messages list for model inference (system + history)."""
-    msgs = [{"role": "system", "content": system_prompt}]
+    msgs: list[dict] = [{"role": "system", "content": system_prompt}]
     for m in _store.get(session_id, []):
-        msgs.append({"role": m["role"], "content": m["content"]})
+        content = m["content"]
+        if m["role"] == "assistant" and redact_assistant_numerical_claims:
+            content = _redact_numerical_assistant_bodies(content)
+        msgs.append({"role": m["role"], "content": content})
     return msgs
 
 

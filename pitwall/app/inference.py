@@ -21,6 +21,7 @@ from typing import Any
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from config import (
     INFERENCE_BACKEND,
+    INFERENCE_TEMPERATURE,
     MAX_NEW_TOKENS,
     OLLAMA_MODEL,
     OLLAMA_URL,
@@ -28,7 +29,6 @@ from config import (
     QWEN_BASE_MODEL_PATH,
     QWEN_LOAD_IN_4BIT,
     QWEN_LOCAL_DTYPE,
-    TEMPERATURE,
 )
 
 log = logging.getLogger(__name__)
@@ -148,7 +148,7 @@ def _load_local_qwen() -> bool:
 def _generate_ollama(
     messages: list[dict],
     max_new_tokens: int = MAX_NEW_TOKENS,
-    temperature: float = TEMPERATURE,
+    temperature: float = INFERENCE_TEMPERATURE,
 ) -> str:
     payload = json.dumps({
         "model": OLLAMA_MODEL,
@@ -156,7 +156,7 @@ def _generate_ollama(
         "stream": False,
         "options": {
             "num_predict": max_new_tokens,
-            "temperature": temperature,
+            "temperature": INFERENCE_TEMPERATURE,
         },
     }).encode("utf-8")
 
@@ -181,7 +181,7 @@ def _generate_ollama(
 def _generate_local_qwen(
     messages: list[dict],
     max_new_tokens: int = MAX_NEW_TOKENS,
-    temperature: float = TEMPERATURE,
+    temperature: float = INFERENCE_TEMPERATURE,
 ) -> str:
     if not _load_local_qwen():
         raise RuntimeError("Local Qwen model is not available")
@@ -206,13 +206,14 @@ def _generate_local_qwen(
         attention_mask = input_ids.ne(tokenizer.pad_token_id)
     in_len = input_ids.shape[-1]
 
-    do_sample = temperature > 0
+    temp = INFERENCE_TEMPERATURE
+    do_sample = temp > 0
     with torch.no_grad():
         outputs = model.generate(
             input_ids=input_ids,
             attention_mask=attention_mask,
             max_new_tokens=max_new_tokens,
-            temperature=temperature if do_sample else None,
+            temperature=temp if do_sample else None,
             do_sample=do_sample,
             pad_token_id=tokenizer.pad_token_id,
             eos_token_id=tokenizer.eos_token_id,
@@ -246,9 +247,10 @@ else:
 def generate(
     messages: list[dict],
     max_new_tokens: int = MAX_NEW_TOKENS,
-    temperature: float = TEMPERATURE,
+    temperature: float = INFERENCE_TEMPERATURE,
 ) -> str:
-    """Generate a response with the configured local backend."""
+    """Generate a response with the configured local backend (temperature fixed to INFERENCE_TEMPERATURE)."""
+    t = INFERENCE_TEMPERATURE
     if ACTIVE_BACKEND == "local_qwen":
-        return _generate_local_qwen(messages, max_new_tokens=max_new_tokens, temperature=temperature)
-    return _generate_ollama(messages, max_new_tokens=max_new_tokens, temperature=temperature)
+        return _generate_local_qwen(messages, max_new_tokens=max_new_tokens, temperature=t)
+    return _generate_ollama(messages, max_new_tokens=max_new_tokens, temperature=t)

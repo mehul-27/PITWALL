@@ -53,6 +53,35 @@ TEST_PATH    = DATASET_DIR / 'test.jsonl'
 # avoids downloading extra seasons of cache.
 SEASONS = list(range(2022, 2026))  # 2022-2025 inclusive
 
+# -- Time delta sign (seconds) vs reference -----------------------------------
+# All PitWall *lap / sector* deltas use the same rule:
+#   + = slower than the stated reference;  − = faster than the reference.
+# driver_sector_stats: reference = the session’s fastest full lap in qualifying
+#   (minimum lap time among all valid Q laps, then that lap’s sector splits).
+# Live SQL telemetry: reference is given explicitly in the fetched block
+#   (session fastest lap, or field average of per-driver means when “average” mode).
+# corner_stats.delta_vs_field is a *speed* offset in km/h, not a lap-time delta—see
+# CORNER_SPEED_DELTA_CONVENTION (sign meaning differs from time).
+SECTOR_TIME_DELTA_CONVENTION_BANNER = "Lap-time sector deltas (seconds) vs reference:"
+TIME_DELTA_SIGN_RULE = (
+    "Positive = slower than the reference in that sector; "
+    "negative = faster than the reference in that sector."
+)
+CORNER_SPEED_DELTA_CONVENTION = (
+    "Corner delta_vs_field (km/h) = this driver’s mean minimum speed through the corner "
+    "minus the field mean. Positive = higher min speed than the field average; "
+    "this is a speed margin, not the lap-time sign convention (positive = slower) above."
+)
+LLM_TIME_DELTA_FOLLOW = (
+    "When the prompt includes a 'SECTOR TIME DELTAS' block, the plain-English "
+    "'FASTER' / 'SLOWER' lines and the sign on the number are the source of truth—do not reinterpret."
+)
+LLM_TELEMETRY_ANSWER_BODY = (
+    "When a lap table (Lap, LapTime, S1–S3) is present, your answer must *quote those numbers* "
+    "— each driver's lap time, the overall gap, and a brief sector readout where relevant. "
+    "A single-sentence paraphrase of the user's question with no times is an invalid answer."
+)
+
 # -- Session types -------------------------------------------------------------
 # FP2 dropped: Q + Race cover all stat categories needed for fine-tuning.
 #   Q    -> sector times, qualifying pace, quali/race delta
@@ -177,7 +206,9 @@ GROQ_RATE_LIMIT_SLEEP   = 2   # seconds between calls; stays comfortably under 3
 BASE_MODEL_ID  = 'meta-llama/Llama-3.2-3B-Instruct'
 # Slightly lower than default 350 = shorter, faster tail latency; raise if answers truncate.
 MAX_NEW_TOKENS = 256
-TEMPERATURE    = 0.1
+# All local inference (chat, evaluate, baseline) must use 0.1 — set explicitly, do not rely on model defaults.
+INFERENCE_TEMPERATURE = 0.1
+TEMPERATURE = INFERENCE_TEMPERATURE
 
 # Inference backend:
 #   ollama     -> current local REST-based flow
@@ -205,13 +236,14 @@ OLLAMA_URL     = 'http://localhost:11434'
 SYSTEM_PROMPT = (
     "You are an F1 race engineer with deep knowledge of tyre behaviour, race strategy, "
     "driving mechanics, and circuit characteristics across the 2022-2025 seasons. "
-    "Give specific, data-grounded answers. Never guess -- if you don't know, say so."
+    "Give specific, data-grounded answers. Never guess -- if you don't know, say so. "
+    "For any lap/sector *time* delta in the provided data, use the sign rule given there "
+    "(positive = slower than the stated reference unless explicitly described otherwise; "
+    "corner speed margins in km/h are labelled separately and are not lap-time signs)."
 )
 
-# PitWall chat UI (Flask) only: extends the base with layout / markdown guidance.
-CHAT_SYSTEM_PROMPT = (
-    SYSTEM_PROMPT
-    + " "
+# -- PitWall chat: split so general (strategy / compounds) is not given telemetry-only rules.
+CHAT_FORMAT_AND_TONE = (
     "Format every reply for readability. Start with one short summary line, then a blank line, then details. "
     "Use short paragraphs and put a blank line between distinct ideas. "
     "For several facts or numbers, use markdown bullet lists (each line starting with '- '). "
@@ -219,5 +251,33 @@ CHAT_SYSTEM_PROMPT = (
     "For longer or multi-part answers, use this structure (markdown headings on their own line): "
     "**Summary** then your overview; then **Facts** with bullets or tight paragraphs; "
     "then **Notes** only for caveats, uncertainty, or what is not in the data. "
-    "Omit empty sections. Keep short answers to one or two short paragraphs when the question is simple."
+    "Omit empty sections. Keep short answers to one or two short paragraphs when the question is simple. "
 )
+
+CHAT_BASE_CONTEXT_RULES = (
+    "Context: The application may attach a '--- TELEMETRY DATA ---' block in this same prompt, or it may not. "
+    "If you do *not* see that block, you are in general race-engineer mode: answer strategy, pit calls, and "
+    "starting-grip / compound trade-offs from normal F1 knowledge. Do not say you are 'limited to the numbers "
+    "in telemetry' or that you must 'use only telemetry'—that applies only when a telemetry block is actually "
+    "present. Do not paraphrase the user’s question as your entire answer. "
+    "Do not invent specific session lap times, sector splits, or speed-trap km/h as if from our database. "
+    "If the user is wrong, correct them. If you are uncertain, say so. Never self-label a data source. "
+    "Sources are set by the application, not the model."
+)
+
+# App always starts from this; TELEMETRY_RULES is appended only when a block is joined.
+CHAT_SYSTEM_PROMPT_BASE = (
+    SYSTEM_PROMPT + " " + CHAT_FORMAT_AND_TONE + " " + CHAT_BASE_CONTEXT_RULES
+)
+
+# Injected in app.py only with live SQL context.
+CHAT_SYSTEM_TELEMETRY_RULES = (
+    "A telemetry data block is attached below. For those numbers only: use the exact values—no substitutes "
+    "from memory. If asked to verify, re-check the block. "
+    "For lap/sector *time* deltas, follow the sign rule stated in the block (positive = slower vs the reference). "
+    "In head-to-head lines, the block lists the only driver codes in scope; do not add a third driver. "
+    "For corner speed 'delta' in km/h, that is a speed margin, not a lap-time sign—see the block wording."
+)
+
+# Backward compatibility for imports expecting one symbol.
+CHAT_SYSTEM_PROMPT = CHAT_SYSTEM_PROMPT_BASE

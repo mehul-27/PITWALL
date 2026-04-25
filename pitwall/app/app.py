@@ -24,12 +24,41 @@ except ModuleNotFoundError:
 
 from flask import Flask, render_template, request, jsonify, session
 
-from config import CHAT_SYSTEM_PROMPT
-from intent import detect_mode, parse_telemetry_intent, extract_topics
+import re
+
+from config import (
+    ALL_DRIVERS,
+    CHAT_SYSTEM_PROMPT_BASE,
+    CHAT_SYSTEM_TELEMETRY_RULES,
+    LLM_TELEMETRY_ANSWER_BODY,
+    LLM_TIME_DELTA_FOLLOW,
+)
+from driver_stats import get_session_count, load_driver_session_counts
+from intent import (
+    detect_mode,
+    extract_topics,
+    is_pushback_message,
+    merge_telemetry_intent,
+    parse_telemetry_intent,
+)
 from memory import (
     create_session, add_message, get_history, get_model_messages, clear,
 )
-from retrieval import fetch_telemetry
+from retrieval import fetch_telemetry_structured
+from telemetry_synthesis import maybe_append_telemetry_synthesis
+from telemetry_validation import (
+    BOUNDS_REPLACEMENT_MESSAGE,
+    check_response_sector_sign_misinterpretation,
+    validate_telemetry_block,
+)
+
+# Last successful telemetry intent per chat (for pushback re-query)
+_LAST_TELEMETRY_INTENT: dict[str, dict] = {}
+
+SPARSE_DATA_NOTE = (
+    "Note: Limited session data is available for this driver. This response is based on fewer "
+    "sessions than usual and figures may be less reliable than for drivers with longer track records in the dataset."
+)
 
 # Try to load the real model — fall back to stubs if Ollama unavailable
 _MODEL_LOADED = False
@@ -39,6 +68,11 @@ try:
 except Exception as exc:
     logging.warning("Could not import inference module: %s — using stub responses", exc)
     _model_generate = None
+
+try:
+    load_driver_session_counts()
+except Exception as exc:
+    logging.warning("Driver session stats not loaded: %s", exc)
 
 log = logging.getLogger(__name__)
 
@@ -69,6 +103,22 @@ def health():
     return jsonify({"status": "ok", "service": "pitwall"}), 200
 
 
+def _collect_driver_codes(message: str, intent: dict) -> list[str]:
+    codes: set[str] = set(intent.get("drivers") or [])
+    for t in re.findall(r"\b([A-Z]{3})\b", message.upper()):
+        if t in ALL_DRIVERS:
+            codes.add(t)
+    return list(codes)
+
+
+def _maybe_append_sparse_note(text: str, drivers: list[str]) -> str:
+    for d in drivers:
+        n = get_session_count(d)
+        if n is not None and n < 3:
+            return text.rstrip() + "\n\n* " + SPARSE_DATA_NOTE
+    return text
+
+
 @app.route("/chat", methods=["POST"])
 def chat():
     """Handle a chat message.
@@ -78,6 +128,7 @@ def chat():
         "response": str,
         "metadata": {
             "mode": "general" | "telemetry",
+            "source": "fastf1_valid" | "data_unavailable" | "model_knowledge" | "no_data_found",
             "response_time_ms": int,
             "confidence": float,
             "topics": [str],
@@ -93,38 +144,114 @@ def chat():
         return jsonify({"error": "Empty message"}), 400
 
     start = time.time()
+    pushback = is_pushback_message(message)
+    raw_intent = parse_telemetry_intent(message)
+    last_tel = _LAST_TELEMETRY_INTENT.get(sid)
+    if pushback:
+        mode = "telemetry"
+        intent = merge_telemetry_intent(raw_intent, last_tel)
+    else:
+        mode = detect_mode(message)
+        if mode == "telemetry":
+            intent = merge_telemetry_intent(raw_intent, last_tel)
+        else:
+            intent = raw_intent
 
-    # ── Detect mode ──────────────────────────────────────────────────────
-    mode = detect_mode(message)
     telemetry_meta: dict = {}
     telemetry_context: str | None = None
+    source = "model_knowledge"
+    t_query_ms = 0
 
-    if mode == "telemetry":
-        intent = parse_telemetry_intent(message)
+    if mode == "telemetry" and not intent.get("circuit"):
+        log.warning("Telemetry mode but no circuit (sid=%s).", sid)
+        if pushback:
+            telemetry_context = (
+                "The user is challenging a prior answer, but the circuit is not in this message. "
+                "Ask them to name a circuit, year, and session, or the previous request context was lost."
+            )
+            source = "no_data_found"
+        else:
+            mode = "general"
+
+    if mode == "telemetry" and intent.get("circuit"):
         try:
             t0 = time.time()
-            telemetry_context = fetch_telemetry(intent)
+            tfetch = fetch_telemetry_structured(intent)
+            t_query_ms = int((time.time() - t0) * 1000)
+            query_ran = True
+            _LAST_TELEMETRY_INTENT[sid] = dict(intent)
+            vmeta = dict(tfetch.meta)
+            vmeta["year"] = vmeta.get("year") or vmeta.get("season")
+
             telemetry_meta = {
-                "query_ms": int((time.time() - t0) * 1000),
+                "query_ms": t_query_ms,
                 "drivers": intent.get("drivers", []),
                 "circuit": intent.get("circuit"),
                 "session": intent.get("session"),
                 "year": intent.get("year"),
                 "lap": intent.get("lap"),
             }
+
+            if getattr(tfetch, "rejection_reason", None):
+                # Session unavailable after ingest, or two-driver quality checks failed — do not
+                # treat as normal telemetry.
+                source = "data_unavailable"
+                telemetry_context = (tfetch.text or tfetch.rejection_reason).strip()
+                telemetry_meta["rejection_reason"] = tfetch.rejection_reason
+            elif not tfetch.query_found_session or not (tfetch.text and tfetch.text.strip()):
+                source = "no_data_found"
+                telemetry_context = (
+                    "No matching session or lap was found in the database for the requested filter. "
+                    "Ask the user to confirm session type (Q vs Race) and year."
+                )
+            elif not tfetch.has_lap_rows:
+                source = "no_data_found"
+                telemetry_context = (
+                    "No valid laps remained after filtering (green-flag valid laps, full sectors, "
+                    "excluded outlaps for race, etc.). Suggest a different session or drivers."
+                )
+            else:
+                val = validate_telemetry_block(tfetch.text, vmeta)
+                if not val.ok:
+                    source = "data_unavailable"
+                    telemetry_context = BOUNDS_REPLACEMENT_MESSAGE
+                    telemetry_meta["validation_failed"] = True
+                else:
+                    source = "fastf1_valid"
+                    telemetry_context = tfetch.text
+        except FileNotFoundError as exc:
+            log.warning("DB missing: %s", exc)
+            mode = "general"
+            telemetry_context = "Telemetry database file was not found on the server."
+            source = "no_data_found"
         except Exception as exc:
-            log.warning("Telemetry fetch failed: %s — falling back to general", exc)
+            log.warning("Telemetry fetch failed: %s", exc)
             mode = "general"
             telemetry_meta = {"error": str(exc)}
+            source = "data_unavailable"
 
-    # ── Record user message ──────────────────────────────────────────────
     add_message(sid, "user", message, mode)
 
-    # ── Generate response ────────────────────────────────────────────────
     topics = extract_topics(message)
-    response_text = _generate(sid, message, mode, telemetry_context)
+    response_text = _generate(sid, message, mode, telemetry_context, pushback=pushback)
+    if mode == "telemetry" and source == "fastf1_valid" and telemetry_context:
+        response_text = maybe_append_telemetry_synthesis(
+            response_text, telemetry_context, message
+        )
+    if (
+        mode == "telemetry"
+        and telemetry_context
+        and source == "fastf1_valid"
+    ):
+        sign_note = check_response_sector_sign_misinterpretation(
+            telemetry_context, response_text
+        )
+        if sign_note:
+            response_text = f"[Verification: {sign_note}]\n\n" + response_text
+            if isinstance(telemetry_meta, dict):
+                telemetry_meta["sign_interpretation_warning"] = True
+    response_text = _maybe_append_sparse_note(response_text, _collect_driver_codes(message, intent))
 
-    # ── Record assistant message ─────────────────────────────────────────
     add_message(sid, "assistant", response_text, mode)
 
     elapsed_ms = int((time.time() - start) * 1000)
@@ -133,8 +260,9 @@ def chat():
         "response": response_text,
         "metadata": {
             "mode": mode,
+            "source": source,
             "response_time_ms": elapsed_ms,
-            "confidence": 0.91 if mode == "general" else 0.87,
+            "confidence": 0.91 if source == "model_knowledge" else 0.87,
             "topics": topics,
             "telemetry": telemetry_meta,
         },
@@ -161,32 +289,37 @@ def clear_session():
 # ---------------------------------------------------------------------------
 
 def _generate(
-    sid: str, message: str, mode: str, telemetry_context: str | None
+    sid: str,
+    message: str,
+    mode: str,
+    telemetry_context: str | None,
+    *,
+    pushback: bool = False,
 ) -> str:
     """Generate a response using the fine-tuned model.
 
     Falls back to stub responses if the model isn't loaded.
     For telemetry mode, injects the telemetry context into the system prompt.
+    On user pushback, redacts prior assistant numerical claims in history.
     """
     if not _MODEL_LOADED:
         return _stub_generate(message, mode, telemetry_context)
 
     try:
-        # Build the system prompt — inject telemetry context if available
-        sys_prompt = CHAT_SYSTEM_PROMPT
+        sys_prompt = CHAT_SYSTEM_PROMPT_BASE
         if mode == "telemetry" and telemetry_context:
             sys_prompt += (
-                "\n\n--- TELEMETRY DATA (use this to ground your answer) ---\n"
+                "\n\n" + CHAT_SYSTEM_TELEMETRY_RULES
+                + "\n\n" + LLM_TIME_DELTA_FOLLOW
+                + "\n\n" + LLM_TELEMETRY_ANSWER_BODY
+                + "\n\n--- TELEMETRY DATA (use ONLY these numbers; do not substitute from memory) ---\n"
                 + telemetry_context
             )
 
-        # Build message list: system + conversation history
-        # (history already includes the current user message from add_message)
-        msgs = get_model_messages(sid, sys_prompt)
-
-        response = _model_generate(msgs)
-        return response
-
+        msgs = get_model_messages(
+            sid, sys_prompt, redact_assistant_numerical_claims=pushback
+        )
+        return _model_generate(msgs)
     except Exception as exc:
         log.error(
             "Model inference failed: %r — falling back to stub", exc, exc_info=True

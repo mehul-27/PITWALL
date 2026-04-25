@@ -57,6 +57,17 @@
     });
   }
 
+  function sourceLabelFromMeta(meta) {
+    const m = {
+      fastf1_valid: 'FastF1 Query',
+      data_unavailable: 'Data Unavailable',
+      model_knowledge: 'Model Knowledge',
+      no_data_found: 'No Data Found',
+    };
+    if (!meta || !meta.source) return m.model_knowledge;
+    return m[meta.source] || m.model_knowledge;
+  }
+
   // ── Create message element ───────────────────────────────
   function createMessage(role, text, mode, meta) {
     const div = document.createElement('div');
@@ -74,24 +85,21 @@
 
     let footer = `<span class="msg-timestamp">${timestamp()}</span>`;
     if (role === 'ai') {
-      if (mode === 'telemetry') {
-        footer = `<span class="msg-source">Source \u00b7 FastF1 Query</span>`;
-        if (meta && meta.telemetry && meta.telemetry.query_ms !== undefined) {
-          footer += `<span class="msg-query-time">${meta.telemetry.query_ms}ms</span>`;
-        }
-        if (meta && meta.telemetry) {
-          (meta.telemetry.drivers || []).forEach(d => {
-            footer += `<span class="msg-chip">${d}</span>`;
-          });
-          if (meta.telemetry.circuit) footer += `<span class="msg-chip">${meta.telemetry.circuit}</span>`;
-          if (meta.telemetry.year && meta.telemetry.session) {
-            footer += `<span class="msg-chip">${meta.telemetry.year} ${meta.telemetry.session}</span>`;
-          }
-        }
-        footer += `<span class="msg-timestamp">${timestamp()}</span>`;
-      } else {
-        footer = `<span class="msg-source">Source \u00b7 Model Knowledge</span>${footer}`;
+      const src = sourceLabelFromMeta(meta);
+      footer = `<span class="msg-source">Source \u00b7 ${src}</span>`;
+      if (meta && meta.source === 'fastf1_valid' && meta.telemetry && meta.telemetry.query_ms !== undefined) {
+        footer += `<span class="msg-query-time">${meta.telemetry.query_ms}ms</span>`;
       }
+      if (meta && meta.telemetry) {
+        (meta.telemetry.drivers || []).forEach(d => {
+          footer += `<span class="msg-chip">${d}</span>`;
+        });
+        if (meta.telemetry.circuit) footer += `<span class="msg-chip">${meta.telemetry.circuit}</span>`;
+        if (meta.telemetry.year && meta.telemetry.session) {
+          footer += `<span class="msg-chip">${meta.telemetry.year} ${meta.telemetry.session}</span>`;
+        }
+      }
+      footer += `<span class="msg-timestamp">${timestamp()}</span>`;
     }
 
     const bodyHtml = role === 'ai' ? renderAssistantMarkdown(text) : escapeHtml(text);
@@ -110,13 +118,25 @@
     return d.innerHTML;
   }
 
+  /** If the model echoed the same telemetry block twice, keep the first (compare-query bugfix). */
+  function stripDuplicateTelemetryBlock(raw) {
+    if (!raw || typeof raw !== 'string') return raw;
+    const m = '=== TELEMETRY DATA ===';
+    const first = raw.indexOf(m);
+    if (first < 0) return raw;
+    const second = raw.indexOf(m, first + m.length);
+    if (second < 0) return raw;
+    return raw.slice(0, second).trimEnd();
+  }
+
   /** Model replies: markdown -> safe HTML. User text stays plain escaped. */
   function renderAssistantMarkdown(raw) {
-    if (!raw) return '';
+    const cleaned = stripDuplicateTelemetryBlock(raw);
+    if (!cleaned) return '';
     if (typeof marked === 'undefined' || typeof DOMPurify === 'undefined') {
-      return escapeHtml(raw).replace(/\n/g, '<br>');
+      return escapeHtml(cleaned).replace(/\n/g, '<br>');
     }
-    const html = marked.parse(raw, { breaks: true, gfm: true });
+    const html = marked.parse(cleaned, { breaks: true, gfm: true });
     return DOMPurify.sanitize(html, { USE_PROFILES: { html: true } });
   }
 
@@ -212,8 +232,10 @@
     sendBtn.disabled = true;
     hideEmptyState();
 
-    // Detect mode client-side for thinking indicator
-    const isTelemetry = /\b(?:lap\s*\d+|\d+(?:st|nd|rd|th)?\s*lap)|\b(compare|vs|versus)\b|\bsector\s*[123]|\b(Q[123]|FP[123])\b|\b(fastest lap|telemetry|speed trap)\b|\b20[12]\d\b/i.test(text);
+    // Client-side guess for the thinking label only (server intent.py is authoritative).
+    const strategyScene = /\b(undercut|overcut|stay out|cover the|safety car|VSC|track position|car behind|seconds back|pitted?|pitting|stint|hards?|mediums?|softers?|do we|should we|or pit)\b/i.test(text);
+    const wantsSqlLap = /\btelemetry|from (the |our )?database|fastest lap|qualifying lap|show me the|what (was|is) the|lap time|sector [123]|\bcompare\s+.+\b(to|vs|versus)\b/i.test(text);
+    const isTelemetry = (!strategyScene || wantsSqlLap) && (/\b(?:lap\s*\d+|\d+(?:st|nd|rd|th)?\s*lap)\b|\b(compare|vs|versus)\b|\bsector\s*[123]|\b(Q[123]|FP[123])\b|\b(fastest lap|telemetry|speed trap)\b/i.test(text));
     const thinkingMode = isTelemetry ? 'telemetry' : 'general';
 
     // Append user message

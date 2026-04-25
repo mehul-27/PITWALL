@@ -20,22 +20,81 @@ from config import ALL_CIRCUITS, ALL_DRIVERS
 # Mode detection
 # ---------------------------------------------------------------------------
 
+# Triggers a DB lap/SQL path. Intentionally does NOT include a bare year (too many false
+# positives) or "lap 35" in a pure strategy story — use _explicit_data_f1_sql_intent.
 TELEMETRY_TRIGGERS = [
-    r'\b(?:lap\s*\d+|\d+(?:st|nd|rd|th)?\s*lap)\b',
-    r'\b(compare|vs|versus)\b',
-    r'\bsector\s*[123]\b',
-    r'\b(Q1|Q2|Q3|FP1|FP2|FP3)\b',
-    r'\b(fastest lap|telemetry|speed trap|mini.?sector)\b',
-    r'\b(20[12][0-9])\b',
+    r"\b(?:lap\s*\d+|\d+(?:st|nd|rd|th)?\s*lap)\b",
+    r"\b(compare|vs|versus)\b",
+    r"\bsector\s*[123]\b",
+    r"\b(Q1|Q2|Q3|FP1|FP2|FP3)\b",
+    r"\b(fastest lap|telemetry|speed trap|mini.?sector)\b",
 ]
+
+# In-race strategy / engineering scenario: answer from the model, not from lap SQL.
+_STRATEGY_OR_ENGINEERING_SCENE = re.compile(
+    r"\b("
+    r"undercut|overcut|stay out|stay in|cover the|safety car|VSC|virtual safety|"
+    r"track position|car behind|seconds back| pit window|pitted|pitting|"
+    r"one-?stop|two-?stop|stint|degrad|tyre life|hards?|mediums?|softers?|"
+    r"graining|cliff|do we|should we| pit or|or pit\b|grid slot"
+    r")\b",
+    re.IGNORECASE,
+)
+
+# User clearly wants a database / laptime-style answer, not a strategy essay.
+_EXPLICIT_SQL_OR_DATA_ASK = re.compile(
+    r"("
+    r"\btelemetry\b|from (the |our )?database|from fastf1|"
+    r"\bqualifying (lap|pace)\b|fastest lap|"
+    r"show me (the )?(data|lap|time|sector)|"
+    r"what (was|were|is) the .{0,50}(lap|time|sector)|"
+    r"how fast (was|is)|\blap time\b|mini.?sector|speed trap|"
+    r"\bcompare\s+.+\b(to|vs|versus)\b"  # "compare A to B" lap/headline query
+    r")",
+    re.IGNORECASE,
+)
 
 
 def detect_mode(message: str) -> str:
-    """Return 'telemetry' if message matches any trigger, else 'general'."""
+    """Return 'telemetry' if a lap/SQL fetch is appropriate, else 'general'.
+
+    Live race strategy, pit/undercut questions, and compound recommendations default to
+    **general** even when the user says 'lap 35' or names a year—unless they explicitly
+    ask for stored session data.
+    """
+    t = message.strip()
+    if _STRATEGY_OR_ENGINEERING_SCENE.search(t) and not _EXPLICIT_SQL_OR_DATA_ASK.search(t):
+        return "general"
     for pattern in TELEMETRY_TRIGGERS:
-        if re.search(pattern, message, re.IGNORECASE):
+        if re.search(pattern, t, re.IGNORECASE):
             return "telemetry"
     return "general"
+
+
+# Phrases that mean the user is challenging the last answer (triggers fresh SQL + context strip)
+PUSHBACK_PATTERNS = [
+    r"\byou\s*are\s*wrong\b",
+    r"\bi\s*don['']t\s*think\s*so\b",
+    r"\bthat'?s?\s*incorrect\b",
+    r"\bcheck\s*again\b",
+    r"\bverify\s*that\b",
+    r"\bare\s*you\s*sure\b",
+    r"\bdouble\s*check\b",
+    r"\bthat\s*doesn['']?t\s*sound\s*right\b",
+    r"\bcheck\s*from\s*telemetry\b",
+    r"\bgive\s*me\s*the\s*actual\s*data\b",
+    r"\bnot\s*right\b",
+    r"\bwrong\b.*\b(previous|last|answer)\b",
+]
+
+
+def is_pushback_message(message: str) -> bool:
+    """True if the user is disputing a prior model reply (Fix 5 / 8)."""
+    t = message.lower()
+    for pat in PUSHBACK_PATTERNS:
+        if re.search(pat, t, re.IGNORECASE):
+            return True
+    return False
 
 
 # ---------------------------------------------------------------------------
@@ -125,18 +184,32 @@ def parse_telemetry_intent(message: str) -> dict:
     if year_match:
         result["year"] = int(year_match.group(1))
 
-    # ── Session ──────────────────────────────────────────────────────────
-    session_map = {
-        r'\bQ1\b': 'Q', r'\bQ2\b': 'Q', r'\bQ3\b': 'Q',
-        r'\bquali': 'Q', r'\bqualifying\b': 'Q',
-        r'\bFP1\b': 'FP1', r'\bFP2\b': 'FP2', r'\bFP3\b': 'FP3',
-        r'\bpractice\b': 'FP2',
-        r'\brace\b': 'Race', r'\bsprint\b': 'Race',
-    }
-    for pat, sess in session_map.items():
-        if re.search(pat, message, re.IGNORECASE):
-            result["session"] = sess
-            break
+    # ── Session (quali before race: avoid mixing quali and race) ─────────
+    if re.search(
+        r'\b(quali(?:fying)?|Q1|Q2|Q3|pole|quali\s*lap|qualifying\s*pace|grid)\b',
+        message,
+        re.IGNORECASE,
+    ):
+        result["session"] = "Q"
+    elif re.search(
+        r'\b(FP1|FP2|FP3|free\s*practice|practice)\b',
+        message,
+        re.IGNORECASE,
+    ):
+        mfp = re.search(r'\b(FP1|FP2|FP3)\b', message, re.IGNORECASE)
+        result["session"] = mfp.group(1).upper() if mfp else "FP2"
+    elif re.search(r'\b(sprint|grand\s*prix|gp\b|race\s*pace|in\s*the\s*race|stint|race lap)\b', message, re.IGNORECASE) or re.search(
+        r'(?<![A-Z0-9])\brace\b', message, re.IGNORECASE
+    ):
+        result["session"] = "Race"
+    else:
+        session_map = {
+            r'\bQ1\b': 'Q', r'\bQ2\b': 'Q', r'\bQ3\b': 'Q',
+        }
+        for pat, sess in session_map.items():
+            if re.search(pat, message, re.IGNORECASE):
+                result["session"] = sess
+                break
 
     # ── Lap number ───────────────────────────────────────────────────────
     lap_match = re.search(r'\b(?:lap\s*(\d+)|(\d+)(?:st|nd|rd|th)?\s*lap)\b', message, re.IGNORECASE)
@@ -145,7 +218,27 @@ def parse_telemetry_intent(message: str) -> dict:
     elif re.search(r'\bfastest\s*lap\b', message, re.IGNORECASE):
         result["lap"] = "fastest"
 
+    # Average race pace (SQL path) when user asks for "average" explicitly
+    result["wants_average"] = bool(
+        re.search(r"\b(average|mean)\s*(race\s*)?pace\b", message, re.IGNORECASE)
+    )
+
     return result
+
+
+def merge_telemetry_intent(current: dict, last: dict | None) -> dict:
+    """Fill missing circuit/year/session from last successful telemetry turn (pushback)."""
+    if not last:
+        return current
+    out = dict(current)
+    for k in ("circuit", "year", "session", "lap"):
+        if (out.get(k) is None or out.get(k) == [] or out.get(k) == "") and k in last:
+            v = last.get(k)
+            if v is not None and v != [] and v != "":
+                out[k] = v
+    if (not out.get("drivers")) and last.get("drivers"):
+        out["drivers"] = list(last["drivers"])
+    return out
 
 
 # ---------------------------------------------------------------------------
